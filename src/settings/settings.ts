@@ -3,6 +3,11 @@ import TimelineSchedule from "src/main";
 
 export interface TimelineScheduleSettings {
 	blockVariableName: string;
+	startBlockName: string;
+	endBlockName: string;
+
+	renderInPreviewMode: boolean;
+	renderInReadMode: boolean;
 
 	enableCodeblockTextCompletion: boolean;
 	shouldAppendEmptyTimeBlock: boolean;
@@ -14,12 +19,17 @@ export interface TimelineScheduleSettings {
 
 export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
 	blockVariableName: "schedule",
+	startBlockName: "Start",
+	endBlockName: "Finish",
+
+	renderInPreviewMode: true,
+	renderInReadMode: true,
 
 	enableCodeblockTextCompletion: true,
-	shouldAppendEmptyTimeBlock: false,
+	shouldAppendEmptyTimeBlock: true,
 
-	startDateFormat: "h:mm A",
-	endDateFormat: "h:mm A",
+	startDateFormat: "hh:mm A",
+	endDateFormat: "hh:mm A",
 	eventDateFormat: "h:mm A",
 };
 
@@ -41,20 +51,58 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(this.containerEl)
 			.setName("Code block variable")
 			.setDesc(
-				"The name of the code block variable to use for the schedule"
+				"The name of the code block variable to use for the plugin."
 			)
-			.addText((text) =>
-				text
-					.setPlaceholder(DEFAULT_SETTINGS.blockVariableName)
+			.addText((text) => {
+				text.setPlaceholder(DEFAULT_SETTINGS.blockVariableName)
 					.setValue(this.plugin.settings.blockVariableName)
 					.onChange(async (value: string) => {
 						this.plugin.settings.blockVariableName = value;
 						await this.plugin.saveSettings();
+					});
+				text.inputEl.onblur = () => {
+					this.display();
+				};
+			});
+
+		new Setting(this.containerEl)
+			.setName("Start block name")
+			.setDesc("The name of the start block.")
+			.addText((text) => {
+				text.setPlaceholder(DEFAULT_SETTINGS.startBlockName)
+					.setValue(this.plugin.settings.startBlockName)
+					.onChange(async (value: string) => {
+						this.plugin.settings.startBlockName = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(this.containerEl)
+			.setName("End block name")
+			.setDesc("The name of the end block.")
+			.addText((text) => {
+				text.setPlaceholder(DEFAULT_SETTINGS.endBlockName)
+					.setValue(this.plugin.settings.endBlockName)
+					.onChange(async (value: string) => {
+						this.plugin.settings.endBlockName = value;
+						await this.plugin.saveSettings();
+					});
+			});
+
+		new Setting(this.containerEl)
+			.setName("Pretty render when cursor leaves")
+			.setDesc(
+				`Pretty preview ${this.plugin.settings.blockVariableName} code blocks when your cursor exits the code block`
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.renderInPreviewMode)
+					.onChange(async (value: boolean) => {
+						this.plugin.settings.renderInPreviewMode = value;
+						await this.plugin.saveSettings();
 						this.display();
 					})
 			);
-
-		new Setting(this.containerEl).setName("Code block completion");
 
 		new Setting(this.containerEl)
 			.setName("Enable code block text completion")

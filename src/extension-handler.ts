@@ -2,12 +2,11 @@ import { ViewPlugin } from "@codemirror/view";
 import type { PluginValue, EditorView } from "@codemirror/view";
 import { moment, type App, type EditorPosition, MarkdownView } from "obsidian";
 import timestring from "timestring";
-import { DEFAULT_SETTINGS, TimelineScheduleSettings } from "src/settings/settings";
-
-const startName = "[start]:";
-const endName = "[end]:";
-const matchBlockRegex = /^(\[.*\]:)(.*)/gi;
-const matchHumanTimeRegex = /\(.*?\)(\s*?)$/gi;
+import {
+	DEFAULT_SETTINGS,
+	TimelineScheduleSettings,
+} from "src/settings/settings";
+import { matchBlockRegex, matchHumanTimeRegex } from "./constants";
 
 class TimelineScheduleExtension implements PluginValue {
 	private readonly view: EditorView;
@@ -18,6 +17,8 @@ class TimelineScheduleExtension implements PluginValue {
 
 	// Set from settings
 	private blockVariableName: string;
+	private startBlockName: string;
+	private endBlockName: string;
 	private shouldAppendEmptyTimeBlock: boolean;
 	private startDateFormat: string;
 	private endDateFormat: string;
@@ -34,17 +35,30 @@ class TimelineScheduleExtension implements PluginValue {
 		this.settings = settings;
 
 		this.codeBlockRegex = new RegExp(
-			"```(" +
+			"`{3}(" +
 				this.settings.blockVariableName +
-				"\\n?)([a-z\\s]*\\n[\\s\\S]*?)\\n```",
+				"\\s*?)\\n([\\w\\s\\S]*?)\\n`{3}",
 			"gim"
 		);
 
-		this.blockVariableName = this.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName;
-		this.shouldAppendEmptyTimeBlock = this.settings.shouldAppendEmptyTimeBlock || DEFAULT_SETTINGS.shouldAppendEmptyTimeBlock;
-		this.startDateFormat = this.settings.startDateFormat || DEFAULT_SETTINGS.startDateFormat;
-		this.endDateFormat = this.settings.endDateFormat || DEFAULT_SETTINGS.endDateFormat;
-		this.eventDateFormat = this.settings.eventDateFormat || DEFAULT_SETTINGS.eventDateFormat;
+		this.blockVariableName =
+			this.settings.blockVariableName ||
+			DEFAULT_SETTINGS.blockVariableName;
+		this.startBlockName = `[${
+			this.settings.startBlockName || DEFAULT_SETTINGS.startBlockName
+		}]:`;
+		this.endBlockName = `[${
+			this.settings.endBlockName || DEFAULT_SETTINGS.endBlockName
+		}]:`;
+		this.shouldAppendEmptyTimeBlock =
+			this.settings.shouldAppendEmptyTimeBlock ||
+			DEFAULT_SETTINGS.shouldAppendEmptyTimeBlock;
+		this.startDateFormat =
+			this.settings.startDateFormat || DEFAULT_SETTINGS.startDateFormat;
+		this.endDateFormat =
+			this.settings.endDateFormat || DEFAULT_SETTINGS.endDateFormat;
+		this.eventDateFormat =
+			this.settings.eventDateFormat || DEFAULT_SETTINGS.eventDateFormat;
 	}
 
 	public destroy(): void {
@@ -62,7 +76,7 @@ class TimelineScheduleExtension implements PluginValue {
 
 		// We found a match with `schedule` as code block title
 		for (const match of matches) {
-			if (!match.index) {
+			if (typeof match.index === "undefined" || match.index === null) {
 				continue;
 			}
 			if (match?.[1].trim() !== this.blockVariableName) {
@@ -80,7 +94,7 @@ class TimelineScheduleExtension implements PluginValue {
 			<number>match.index + 4 + this.blockVariableName.length;
 		let hasChanges = false;
 
-		const innerContents = match[2];
+		const innerContents = match?.[2];
 		const splitLines = innerContents.trim().split("\n");
 
 		// Fill in the codeblock with empty lines so we can replace them with 3 core time blocks in the for loop
@@ -108,23 +122,25 @@ class TimelineScheduleExtension implements PluginValue {
 			const textAfterColon = (<string>lineMatches?.[2] || "").trim();
 
 			// add [start] block if first line and it's missing
-			if (i === 0 && textBlock !== startName) {
+			if (i === 0 && textBlock !== this.startBlockName) {
 				if (textAfterColon) {
 					startTime = moment(textAfterColon, this.startDateFormat);
-					line = `${startName} ${startTime.format(this.startDateFormat)}`;
+					line = `${this.startBlockName} ${startTime.format(
+						this.startDateFormat
+					)}`;
 				} else {
 					startTime = moment();
-					line = `${startName} ${startTime.format(this.startDateFormat)}`;
+					line = `${this.startBlockName} ${startTime.format(
+						this.startDateFormat
+					)}`;
 				}
 
 				// Update line
 				hasChanges = true;
 				splitLines[i] = line;
 				continue;
-			}
-
-			// Determine start time if not initialized from creating a [start] block
-			if (textBlock === startName) {
+			} else if (i === 0 && textBlock === this.startBlockName) {
+				// Determine start time if not initialized from creating a [start] block
 				if (textAfterColon) {
 					startTime = moment(textAfterColon, this.startDateFormat);
 				}
@@ -132,12 +148,13 @@ class TimelineScheduleExtension implements PluginValue {
 			}
 
 			// Replace all [time] blocks or empty lines with the correct time
-			if (
-				!textBlock ||
-				(textBlock !== startName && textBlock !== endName)
-			) {
+			if (!textBlock || textBlock !== this.endBlockName) {
 				// If empty line and we have appendEmptyTimeBlock enabled, delete the empty line
-				if (!textBlock && this.shouldAppendEmptyTimeBlock) {
+				if (
+					!textBlock &&
+					this.shouldAppendEmptyTimeBlock &&
+					i < splitLines.length - 1
+				) {
 					const nextLineMatches = [
 						...splitLines[i + 1].matchAll(matchBlockRegex),
 					]?.[0];
@@ -154,7 +171,9 @@ class TimelineScheduleExtension implements PluginValue {
 				if (elapsedMs) {
 					nextDate = nextDate.add(elapsedMs, "millisecond");
 				}
-				const timeBlockString = `[${nextDate.format(this.eventDateFormat)}]:`;
+				const timeBlockString = `[${nextDate.format(
+					this.eventDateFormat
+				)}]:`;
 				if (textBlock !== timeBlockString) {
 					line = `${timeBlockString} ${textAfterColon}`;
 					// Update line
@@ -164,7 +183,7 @@ class TimelineScheduleExtension implements PluginValue {
 			}
 
 			// Use [time] blocks to calculate elapsed time
-			if (textBlock !== endName) {
+			if (textBlock !== this.endBlockName) {
 				// Existing time block
 				const humanTime = textAfterColon.match(matchHumanTimeRegex);
 				if (humanTime) {
@@ -185,7 +204,7 @@ class TimelineScheduleExtension implements PluginValue {
 				if (elapsedMs) {
 					endDate = endDate.add(elapsedMs, "millisecond");
 				}
-				const endBlockString = `${endName} ${endDate.format(
+				const endBlockString = `${this.endBlockName} ${endDate.format(
 					this.endDateFormat
 				)}`;
 				if (line.trim() !== endBlockString) {
@@ -220,22 +239,26 @@ class TimelineScheduleExtension implements PluginValue {
 				this.app?.workspace?.getActiveViewOfType(MarkdownView);
 			const existingScroll = activeView?.currentMode?.getScroll();
 			const existingCursor = this.getCursor();
-			this.view.dispatch(
-				this.view.state.update({
-					changes: {
-						from: innerIndex,
-						to: innerIndex + innerContents.length - 1,
-						insert: newContents,
-					},
-				})
-			);
+			const changes = {
+				from: innerIndex,
+				insert: newContents,
+			};
+			if (innerContents.trim()) {
+				// @ts-expect-error .to is added
+				changes.to = innerIndex + innerContents.length;
+			}
+			this.view.dispatch(this.view.state.update({ changes }));
 			const newCursorLine = this.view.state.doc.toString().split("\n")[
 				existingCursor.line - 1
 			];
 			let bumpCursor = 0;
-			const matches = [...newCursorLine.matchAll(matchBlockRegex)]?.[0];
-			if (matches?.[2].trim() === "") {
-				bumpCursor = newCursorLine.length;
+			if (newCursorLine) {
+				const matches = [
+					...newCursorLine.matchAll(matchBlockRegex),
+				]?.[0];
+				if (matches?.[2].trim() === "") {
+					bumpCursor = newCursorLine.length;
+				}
 			}
 			if (existingCursor?.ch) {
 				this.view.dispatch(

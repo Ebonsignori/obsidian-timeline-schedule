@@ -1,0 +1,29 @@
+.timeline-schedule-list-item {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.timeline-schedule-start {
+	.timeline-schedule-list-item-block {
+    flex-basis: 20%;
+		color: var(--color-green);
+	}
+}
+
+.timeline-schedule-end {
+	.timeline-schedule-list-item-block {
+    flex-basis: 20%;
+		color: var(--color-red);
+	}
+}
+
+.timeline-schedule-list-item-block {
+	color: var(--text-muted);
+	flex-basis: 20%;
+}
+
+.timeline-schedule-list-item-contents {
+	overflow-wrap: break-word;
+	max-width: 80%;
+}

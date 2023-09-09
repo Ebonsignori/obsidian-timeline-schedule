@@ -3,7 +3,7 @@
   "name": "Timeline Schedule",
   "version": "1.0.0",
   "minAppVersion": "0.15.0",
-  "description": "Inline timelines generated from human-readable time strings in todos, e.g. 'Walk dog (30min)' in a ```schedule codeblock.",
+  "description": "Inline timelines generated from human-readable time strings, e.g. 'Walk dog (30min)' in a ```schedule codeblock.",
   "author": "Evan Bonsignori",
   "authorUrl": "https://github.com/Ebonsignori",
   "isDesktopOnly": false

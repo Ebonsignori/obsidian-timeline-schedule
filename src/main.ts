@@ -6,6 +6,7 @@ import {
 } from "./settings/settings";
 import { editorExtension } from "./extension-handler";
 import { EditorView } from "@codemirror/view";
+import { PrettyRender } from "./pretty-render";
 
 export default class TimelineSchedule extends Plugin {
 	settings: TimelineScheduleSettings;
@@ -16,16 +17,16 @@ export default class TimelineSchedule extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
-		this.registerMarkdownCodeBlockProcessor(
-			this.settings.blockVariableName,
-			(source, el, ctx) => {
-				console.log("Here in CodeBlock", source, el, ctx);
-			}
-		);
-
-		this.registerMarkdownPostProcessor((el, ctx) => {
-			console.log("Here in PostProcessor", el, ctx);
-		});
+		if (this.settings.renderInPreviewMode) {
+			this.registerMarkdownCodeBlockProcessor(
+				this.settings.blockVariableName,
+				(source, el, ctx) => {
+					if (source.trim()) {
+						ctx.addChild(new PrettyRender(el, source));
+					}
+				}
+			);
+		}
 
 		if (this.settings.enableCodeblockTextCompletion) {
 			this.registerEditorExtension(editorExtension);
