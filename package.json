@@ -35,8 +35,6 @@
   "dependencies": {
     "@codemirror/language": "^6.9.0",
     "@codemirror/view": "^6.17.0",
-    "@popperjs/core": "^2.11.8",
-    "fuzzysort": "^2.0.4",
     "timestring": "^7.0.0"
   }
 }
