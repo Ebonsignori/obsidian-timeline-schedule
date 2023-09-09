@@ -1,11 +1,10 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin } from "obsidian";
 import {
 	TimelineScheduleSettings as TimelineScheduleSettings,
 	DEFAULT_SETTINGS,
 	SettingsTab,
 } from "./settings/settings";
-import { editorExtension } from "./extension-handler";
-import { EditorView } from "@codemirror/view";
+import { inlinePlugin } from "./extension-handler";
 import { PrettyRender } from "./pretty-render";
 
 export default class TimelineSchedule extends Plugin {
@@ -29,31 +28,39 @@ export default class TimelineSchedule extends Plugin {
 		}
 
 		if (this.settings.enableCodeblockTextCompletion) {
-			this.registerEditorExtension(editorExtension);
-			this.giveExtensionProps(this.app.workspace.getMostRecentLeaf());
-			const onLeafChange = async (leaf: WorkspaceLeaf) => {
-				this.giveExtensionProps(leaf);
-			};
+			this.activeExtension = [inlinePlugin(this.app, this.settings)];
+			this.registerEditorExtension(this.activeExtension);
 			this.registerEvent(
 				this.app.workspace.on(
 					"active-leaf-change",
-					onLeafChange.bind(this)
+					this.updateEditorProcessors.bind(this)
 				)
 			);
 		}
 	}
 
-	giveExtensionProps(leaf: WorkspaceLeaf | null): void {
-		// @ts-expect-error editor is private
-		const activeEditor = leaf?.view?.editor;
-		if (activeEditor) {
-			const editorView = activeEditor.cm as EditorView;
-			const editorPlug = editorView.plugin(editorExtension);
-			if (editorPlug) {
-				this.activeExtension = editorPlug;
+	updateEditorProcessors() {
+		// Update the active extension
+		// Empty the array while keeping the same reference
+		// (Don't create a new array here)
+		this.activeExtension.length = 0;
+
+		// Add new extension to the array
+		this.activeExtension.push(inlinePlugin(this.app, this.settings));
+
+		// Update the active markdown processor
+		// TODO: Unregister the old processor without needing reset?
+		this.registerMarkdownCodeBlockProcessor(
+			this.settings.blockVariableName,
+			(source, el, ctx) => {
+				if (source.trim()) {
+					ctx.addChild(new PrettyRender(el, source));
+				}
 			}
-			editorPlug?.updateProps(this.app, this.settings);
-		}
+		);
+
+		// Flush the changes to all editors
+		this.app.workspace.updateOptions();
 	}
 
 	async loadSettings() {
