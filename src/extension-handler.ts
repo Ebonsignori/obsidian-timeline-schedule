@@ -36,7 +36,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 					settings.blockVariableName ||
 					DEFAULT_SETTINGS.blockVariableName;
 				this.codeBlockRegex = new RegExp(
-					"`{3}(" +
+					"(.*)?`{3}(" +
 						this.blockVariableName +
 						"\\s*?)\\n([\\w\\s\\S]*?)`{3}",
 					"gim"
@@ -85,7 +85,10 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 					) {
 						continue;
 					}
-					if (match?.[1].trim() !== this.blockVariableName) {
+					if (match?.[2].trim() !== this.blockVariableName) {
+						continue;
+					}
+					if (match?.[1]?.length) {
 						continue;
 					}
 
@@ -100,7 +103,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 					<number>match.index + 4 + this.blockVariableName.length;
 				let hasChanges = false;
 
-				const innerContents = match?.[2];
+				const innerContents = match?.[3];
 				const splitLines = innerContents.trim().split("\n");
 
 				// Fill in the codeblock with empty lines so we can replace them with 3 core time blocks in the for loop
@@ -261,19 +264,16 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 
 				// Update inner contents, but preserve cursor and scroll position
 				if (hasChanges) {
-					const newContents = splitLines.join("\n");
+					const newContents = splitLines.join("\n") + "\n";
 					const activeView =
 						app?.workspace?.getActiveViewOfType(MarkdownView);
 					const existingScroll = activeView?.currentMode?.getScroll();
 					const existingCursor = this.getCursor();
 					const changes = {
 						from: innerIndex,
+						to: innerIndex + innerContents.length,
 						insert: newContents,
 					};
-					if (innerContents.trim()) {
-						// @ts-expect-error .to is added
-						changes.to = innerIndex + innerContents.length;
-					}
 					this.view.dispatch(this.view.state.update({ changes }));
 					const newCursorLine = this.view.state.doc
 						.toString()

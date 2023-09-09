@@ -18,15 +18,19 @@ export default class TimelineSchedule extends Plugin {
 		this.addSettingTab(new SettingsTab(this.app, this));
 
 		if (this.settings.renderInPreviewMode) {
-			this.registerMarkdownCodeBlockProcessor(
-				this.settings.blockVariableName ||
-					DEFAULT_SETTINGS.blockVariableName,
-				(source, el, ctx) => {
-					if (source.trim()) {
-						ctx.addChild(new PrettyRender(el, source));
+			try {
+				this.registerMarkdownCodeBlockProcessor(
+					this.settings.blockVariableName ||
+						DEFAULT_SETTINGS.blockVariableName,
+					(source, el, ctx) => {
+						if (source.trim()) {
+							ctx.addChild(new PrettyRender(el, source));
+						}
 					}
-				}
-			);
+				);
+			} catch (error) {
+				/* empty */
+			}
 		}
 
 		if (this.settings.enableCodeblockTextCompletion) {
