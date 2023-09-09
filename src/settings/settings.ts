@@ -41,6 +41,12 @@ export class SettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	// On close, reload the plugin
+	hide() {
+		this.plugin.updateEditorProcessors();
+		this.plugin.reloadPlugin();
+	}
+
 	display(): void {
 		this.containerEl.empty();
 
@@ -92,7 +98,7 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(this.containerEl)
 			.setName("Pretty render when cursor leaves")
 			.setDesc(
-				`Pretty preview ${this.plugin.settings.blockVariableName} code blocks when your cursor exits the code block`
+				`Pretty preview ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code blocks when your cursor exits the code block`
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -107,7 +113,7 @@ export class SettingsTab extends PluginSettingTab {
 		new Setting(this.containerEl)
 			.setName("Enable code block text completion")
 			.setDesc(
-				`When in a multi-line ${this.plugin.settings.blockVariableName} code block, dates will be prepended on each line.`
+				`When in a multi-line ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code block, dates will be prepended on each line.`
 			)
 			.addToggle((toggle) =>
 				toggle
@@ -126,7 +132,7 @@ export class SettingsTab extends PluginSettingTab {
 			new Setting(this.containerEl)
 				.setName("Append empty time block")
 				.setDesc(
-					`Will always append an empty event time block before the [end] time block in a ${this.plugin.settings.blockVariableName} code block.`
+					`Will always append an empty event time block before the [end] time block in a ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code block.`
 				)
 				.addToggle((toggle) =>
 					toggle

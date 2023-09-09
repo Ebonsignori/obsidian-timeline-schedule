@@ -10,6 +10,7 @@ import { PrettyRender } from "./pretty-render";
 export default class TimelineSchedule extends Plugin {
 	settings: TimelineScheduleSettings;
 	activeExtension: any;
+	reloadingPlugins = false;
 
 	async onload() {
 		await this.loadSettings();
@@ -18,7 +19,8 @@ export default class TimelineSchedule extends Plugin {
 
 		if (this.settings.renderInPreviewMode) {
 			this.registerMarkdownCodeBlockProcessor(
-				this.settings.blockVariableName,
+				this.settings.blockVariableName ||
+					DEFAULT_SETTINGS.blockVariableName,
 				(source, el, ctx) => {
 					if (source.trim()) {
 						ctx.addChild(new PrettyRender(el, source));
@@ -39,6 +41,22 @@ export default class TimelineSchedule extends Plugin {
 		}
 	}
 
+	async reloadPlugin() {
+		if (this.reloadingPlugins) return;
+		this.reloadingPlugins = true;
+
+		const plugins = (<any>this.app).plugins;
+		if (!plugins?.enabledPlugins?.has(this.manifest.id)) return;
+		await plugins.disablePlugin(this.manifest.id);
+		try {
+			await plugins.enablePlugin(this.manifest.id);
+		} catch (error) {
+			/* empty */
+		}
+
+		this.reloadingPlugins = false;
+	}
+
 	updateEditorProcessors() {
 		// Update the active extension
 		// Empty the array while keeping the same reference
@@ -47,17 +65,6 @@ export default class TimelineSchedule extends Plugin {
 
 		// Add new extension to the array
 		this.activeExtension.push(inlinePlugin(this.app, this.settings));
-
-		// Update the active markdown processor
-		// TODO: Unregister the old processor without needing reset?
-		this.registerMarkdownCodeBlockProcessor(
-			this.settings.blockVariableName,
-			(source, el, ctx) => {
-				if (source.trim()) {
-					ctx.addChild(new PrettyRender(el, source));
-				}
-			}
-		);
 
 		// Flush the changes to all editors
 		this.app.workspace.updateOptions();

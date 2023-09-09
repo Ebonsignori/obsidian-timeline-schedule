@@ -32,16 +32,16 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 			}
 
 			initInstanceVars(): void {
-				this.codeBlockRegex = new RegExp(
-					"`{3}(" +
-						settings.blockVariableName +
-						"\\s*?)\\n([\\w\\s\\S]*?)\\n`{3}",
-					"gim"
-				);
-
 				this.blockVariableName =
 					settings.blockVariableName ||
 					DEFAULT_SETTINGS.blockVariableName;
+				this.codeBlockRegex = new RegExp(
+					"`{3}(" +
+						this.blockVariableName +
+						"\\s*?)\\n([\\w\\s\\S]*?)`{3}",
+					"gim"
+				);
+
 				this.startBlockName = `[${
 					settings.startBlockName || DEFAULT_SETTINGS.startBlockName
 				}]:`;
