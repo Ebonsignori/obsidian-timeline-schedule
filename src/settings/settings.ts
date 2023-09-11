@@ -6,14 +6,15 @@ export interface TimelineScheduleSettings {
 	startBlockName: string;
 	endBlockName: string;
 
-	renderInPreviewMode: boolean;
+	enablePrettyPreview: boolean;
 
-	enableCodeblockTextCompletion: boolean;
+	enableCodeblockTextAutofill: boolean;
 	shouldAppendEmptyTimeBlock: boolean;
 
 	startDateFormat: string;
 	endDateFormat: string;
 	eventDateFormat: string;
+	parseStartDateFormat: string;
 }
 
 export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
@@ -21,14 +22,15 @@ export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
 	startBlockName: "Start",
 	endBlockName: "Finish",
 
-	renderInPreviewMode: true,
+	enablePrettyPreview: true,
 
-	enableCodeblockTextCompletion: true,
-	shouldAppendEmptyTimeBlock: true,
+	enableCodeblockTextAutofill: true,
+	shouldAppendEmptyTimeBlock: false,
 
 	startDateFormat: "hh:mm A",
 	endDateFormat: "hh:mm A",
 	eventDateFormat: "h:mm A",
+	parseStartDateFormat: "hh:mm A",
 };
 
 export class SettingsTab extends PluginSettingTab {
@@ -94,43 +96,50 @@ export class SettingsTab extends PluginSettingTab {
 			});
 
 		new Setting(this.containerEl)
-			.setName("Pretty render when cursor leaves")
+			.setName("Pretty preview when cursor leaves")
 			.setDesc(
-				`Pretty preview ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code blocks when your cursor exits the code block`
+				`Pretty preview ${
+					this.plugin.settings.blockVariableName ||
+					DEFAULT_SETTINGS.blockVariableName
+				} code blocks when your cursor exits the code block`
 			)
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.renderInPreviewMode)
+					.setValue(this.plugin.settings.enablePrettyPreview)
 					.onChange(async (value: boolean) => {
-						this.plugin.settings.renderInPreviewMode = value;
+						this.plugin.settings.enablePrettyPreview = value;
 						await this.plugin.saveSettings();
 						this.display();
 					})
 			);
 
 		new Setting(this.containerEl)
-			.setName("Enable code block text completion")
+			.setName("Enable code block text autofill")
 			.setDesc(
-				`When in a multi-line ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code block, dates will be prepended on each line.`
+				`When in a multi-line ${
+					this.plugin.settings.blockVariableName ||
+					DEFAULT_SETTINGS.blockVariableName
+				} code block, dates will be prepended on each line.`
 			)
 			.addToggle((toggle) =>
 				toggle
-					.setValue(
-						this.plugin.settings.enableCodeblockTextCompletion
-					)
+					.setValue(this.plugin.settings.enableCodeblockTextAutofill)
 					.onChange(async (value: boolean) => {
-						this.plugin.settings.enableCodeblockTextCompletion =
+						this.plugin.settings.enableCodeblockTextAutofill =
 							value;
 						await this.plugin.saveSettings();
 						this.display();
 					})
 			);
 
-		if (this.plugin.settings.enableCodeblockTextCompletion) {
+		if (this.plugin.settings.enableCodeblockTextAutofill) {
 			new Setting(this.containerEl)
 				.setName("Append empty time block")
 				.setDesc(
-					`Will always append an empty event time block before the [end] time block in a ${this.plugin.settings.blockVariableName || DEFAULT_SETTINGS.blockVariableName} code block.`
+					`Will append an empty event time block before the [end] time block in a ${
+						this.plugin.settings.blockVariableName ||
+						DEFAULT_SETTINGS.blockVariableName
+					} code block when autofill is enabled.`
 				)
 				.addToggle((toggle) =>
 					toggle
@@ -225,6 +234,30 @@ export class SettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.eventDateFormat)
 					.onChange(async (value: string) => {
 						this.plugin.settings.eventDateFormat = value;
+						await this.plugin.saveSettings();
+					});
+				text.inputEl.onblur = () => {
+					this.display();
+				};
+			});
+
+		const parseStartDateFormatDesc = document.createDocumentFragment();
+		parseStartDateFormatDesc.append(
+			"If you write your start dates in a different format from the display format, you can specify the format here.",
+			parseStartDateFormatDesc.createEl("br"),
+			`For instance, Start: ${moment().format(
+				this.plugin.settings.parseStartDateFormat ||
+					DEFAULT_SETTINGS.parseStartDateFormat
+			)}`
+		);
+		new Setting(this.containerEl)
+			.setName("Start date format for parsing")
+			.setDesc(parseStartDateFormatDesc)
+			.addText((text) => {
+				text.setPlaceholder(this.plugin.settings.startDateFormat)
+					.setValue(this.plugin.settings.parseStartDateFormat)
+					.onChange(async (value: string) => {
+						this.plugin.settings.parseStartDateFormat = value;
 						await this.plugin.saveSettings();
 					});
 				text.inputEl.onblur = () => {

@@ -1,9 +1,17 @@
 import { MarkdownRenderChild, moment } from "obsidian";
-import { matchBlockRegex, matchHumanTimeRegex } from "./constants";
 import { TimelineScheduleSettings } from "./settings/settings";
 import timestring from "timestring";
+import {
+	matchBlockRegex,
+	matchHumanTimeRegex,
+	getAcceptableStartDateRegex,
+	getStartDateFromUserString,
+	getEndDateBlockRegex,
+} from "./utils";
 
-export class PrettyRender extends MarkdownRenderChild {
+// Markdown processor responsible for rendering a pretty preview of the schedule
+// When cursor leaves the code block
+export class PrettyPreview extends MarkdownRenderChild {
 	body: string;
 	settings: TimelineScheduleSettings;
 
@@ -27,14 +35,8 @@ export class PrettyRender extends MarkdownRenderChild {
 		const lines = this.body.trim().split("\n");
 		const newLines = [];
 
-		const startRegex = new RegExp(
-			`(\\[${this.settings.startBlockName}\\]:|${this.settings.startBlockName}:|\\[start\\]:|start:)(.*)`,
-			"gi"
-		);
-		const endRegex = new RegExp(
-			`^(\\[${this.settings.endBlockName}\\]:|${this.settings.endBlockName}:|\\[end\\]:|end:)(.*)`,
-			"gi"
-		);
+		const startRegex = getAcceptableStartDateRegex(this.settings);
+		const endRegex = getEndDateBlockRegex(this.settings);
 
 		let hasStartLine = false;
 		let startDate;
@@ -49,9 +51,9 @@ export class PrettyRender extends MarkdownRenderChild {
 
 				if (startBlock) {
 					if (startTime) {
-						startDate = moment(
+						startDate = getStartDateFromUserString(
 							startTime.trim(),
-							this.settings.startDateFormat
+							this.settings
 						);
 					} else {
 						startDate = moment();
@@ -78,6 +80,8 @@ export class PrettyRender extends MarkdownRenderChild {
 				startDate = moment();
 			}
 
+			const nextDate = moment(startDate).add(elapsedMs, "millisecond");
+
 			const humanTime = line.match(matchHumanTimeRegex);
 
 			if (humanTime) {
@@ -90,8 +94,6 @@ export class PrettyRender extends MarkdownRenderChild {
 					/* empty */
 				}
 			}
-
-			const nextDate = moment(startDate).add(elapsedMs, "millisecond");
 
 			const timeBlockString = `[${nextDate.format(
 				this.settings.eventDateFormat
@@ -111,9 +113,10 @@ export class PrettyRender extends MarkdownRenderChild {
 
 			// End block
 			if (i === lines.length - 1) {
+				const endDate = moment(startDate).add(elapsedMs, "millisecond");
 				const endBlock = `[${
 					this.settings.endBlockName
-				}]: ${nextDate.format(this.settings.endDateFormat)}`;
+				}]: ${endDate.format(this.settings.endDateFormat)}`;
 				newLines.push(endBlock);
 			}
 		}

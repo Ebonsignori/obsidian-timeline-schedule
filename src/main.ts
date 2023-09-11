@@ -4,8 +4,8 @@ import {
 	DEFAULT_SETTINGS,
 	SettingsTab,
 } from "./settings/settings";
-import { inlinePlugin } from "./extension-handler";
-import { PrettyRender } from "./pretty-render";
+import { codeblockAutofillPlugin } from "./codeblock-autofill";
+import { PrettyPreview } from "./pretty-preview";
 
 export default class TimelineSchedule extends Plugin {
 	settings: TimelineScheduleSettings;
@@ -17,14 +17,14 @@ export default class TimelineSchedule extends Plugin {
 
 		this.addSettingTab(new SettingsTab(this.app, this));
 
-		if (this.settings.renderInPreviewMode) {
+		if (this.settings.enablePrettyPreview) {
 			try {
 				this.registerMarkdownCodeBlockProcessor(
 					this.settings.blockVariableName,
 					(source, el, ctx) => {
 						if (source.trim()) {
 							ctx.addChild(
-								new PrettyRender(el, source, this.settings)
+								new PrettyPreview(el, source, this.settings)
 							);
 						}
 					}
@@ -34,8 +34,8 @@ export default class TimelineSchedule extends Plugin {
 			}
 		}
 
-		if (this.settings.enableCodeblockTextCompletion) {
-			this.activeExtension = [inlinePlugin(this.app, this.settings)];
+		if (this.settings.enableCodeblockTextAutofill) {
+			this.activeExtension = [codeblockAutofillPlugin(this.app, this.settings)];
 			this.registerEditorExtension(this.activeExtension);
 			this.registerEvent(
 				this.app.workspace.on(
@@ -46,6 +46,8 @@ export default class TimelineSchedule extends Plugin {
 		}
 	}
 
+	// Since we can disable/enable modes that register and unregister extensions/processors in settings
+	// We need to reload the plugin to unregister existing extensions/processors when settings are changed
 	async reloadPlugin() {
 		if (this.reloadingPlugins) return;
 		this.reloadingPlugins = true;
@@ -62,17 +64,12 @@ export default class TimelineSchedule extends Plugin {
 		this.reloadingPlugins = false;
 	}
 
+	// Replaces the current active editor extension with an updated one
+	// Useful for updating extension args when we change view contexts and/or settings
 	updateEditorProcessors() {
-		// Update the active extension
-		// Empty the array while keeping the same reference
-		// (Don't create a new array here)
 		if (this.activeExtension?.length) {
 			this.activeExtension.length = 0;
-
-			// Add new extension to the array
-			this.activeExtension.push(inlinePlugin(this.app, this.settings));
-
-			// Flush the changes to all editors
+			this.activeExtension.push(codeblockAutofillPlugin(this.app, this.settings));
 			this.app.workspace.updateOptions();
 		}
 	}
@@ -92,7 +89,12 @@ export default class TimelineSchedule extends Plugin {
 				settings[key] === null ||
 				settings[key] === ""
 			) {
-				(<any>this.settings)[key] = (<any>DEFAULT_SETTINGS)[key];
+				// Special case, we fallback to startDateFormat if parseStartDateFormat is empty
+				if (key == "parseStartDateFormat" && !settings[key]) {
+					(<any>this.settings)[key] = this.settings.startDateFormat;
+				} else {
+					(<any>this.settings)[key] = (<any>DEFAULT_SETTINGS)[key];
+				}
 			}
 		}
 	}

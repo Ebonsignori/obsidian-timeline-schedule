@@ -2,26 +2,23 @@ import { ViewPlugin } from "@codemirror/view";
 import type { PluginValue, EditorView } from "@codemirror/view";
 import { moment, type App, type EditorPosition, MarkdownView } from "obsidian";
 import timestring from "timestring";
+import { TimelineScheduleSettings } from "src/settings/settings";
 import {
-	TimelineScheduleSettings,
-} from "src/settings/settings";
-import { matchBlockRegex, matchHumanTimeRegex } from "./constants";
+	getAcceptableStartDateRegex,
+	getStartDateFromUserString,
+	matchBlockRegex,
+	matchHumanTimeRegex,
+} from "./utils";
 
-export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
+// Editor extension responsible for autofilling dates in a codeblock
+export function codeblockAutofillPlugin(app: App, settings: TimelineScheduleSettings) {
 	return ViewPlugin.fromClass(
 		class TimelineScheduleExtension implements PluginValue {
 			private readonly view: EditorView;
 
 			private codeBlockRegex: RegExp;
-
-			// Set from settings
-			private blockVariableName: string;
 			private startBlockName: string;
 			private endBlockName: string;
-			private shouldAppendEmptyTimeBlock: boolean;
-			private startDateFormat: string;
-			private endDateFormat: string;
-			private eventDateFormat: string;
 
 			constructor(view: EditorView) {
 				this.view = view;
@@ -31,21 +28,15 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 			}
 
 			initInstanceVars(): void {
-				this.blockVariableName = settings.blockVariableName;
 				this.codeBlockRegex = new RegExp(
 					"(.*)?`{3}(" +
-						this.blockVariableName +
+						settings.blockVariableName +
 						"\\s*?)\\n([\\w\\s\\S]*?)`{3}",
 					"gim"
 				);
 
 				this.startBlockName = `[${settings.startBlockName}]:`;
 				this.endBlockName = `[${settings.endBlockName}]:`;
-				this.shouldAppendEmptyTimeBlock =
-					settings.shouldAppendEmptyTimeBlock;
-				this.startDateFormat = settings.startDateFormat;
-				this.endDateFormat = settings.endDateFormat;
-				this.eventDateFormat = settings.eventDateFormat;
 			}
 
 			public destroy(): void {
@@ -66,16 +57,20 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 
 				// We found a match with `schedule` as code block title
 				for (const match of matches) {
+					const [, beforeCodeBlock, blockName] = match || [];
 					if (
 						typeof match.index === "undefined" ||
 						match.index === null
 					) {
 						continue;
 					}
-					if (match?.[2].trim() !== this.blockVariableName) {
+					// Only schedule block
+					if (blockName?.trim() !== settings.blockVariableName) {
 						continue;
 					}
-					if (match?.[1]?.length) {
+					// We don't want to autofill if there is content before the codeblock
+					// e.g. "> ```schedule" the "> " is a callout and should not trigger autofill
+					if (beforeCodeBlock?.length) {
 						continue;
 					}
 
@@ -87,7 +82,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 
 			private processMatchingCodeBlock(match: RegExpMatchArray): void {
 				const innerIndex =
-					<number>match.index + 4 + this.blockVariableName.length;
+					<number>match.index + 4 + settings.blockVariableName.length;
 				let hasChanges = false;
 
 				const innerContents = match?.[3];
@@ -117,24 +112,33 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 						...line.matchAll(matchBlockRegex),
 					]?.[0];
 					const textBlock = lineMatches?.[1] || "";
-					const textAfterColon = (
+					let textAfterColon = (
 						<string>lineMatches?.[2] || ""
 					).trim();
 
 					// add [start] block if first line and it's missing
 					if (i === 0 && textBlock !== this.startBlockName) {
+						const [, startBlock, afterColonMatch] =
+							[
+								...line.matchAll(
+									getAcceptableStartDateRegex(settings)
+								),
+							]?.[0] || [];
+						if (startBlock && afterColonMatch) {
+							textAfterColon = afterColonMatch;
+						}
 						if (textAfterColon) {
-							startTime = moment(
+							startTime = getStartDateFromUserString(
 								textAfterColon,
-								this.startDateFormat
+								settings
 							);
 							line = `${this.startBlockName} ${startTime.format(
-								this.startDateFormat
+								settings.startDateFormat
 							)}`;
 						} else {
 							startTime = moment();
 							line = `${this.startBlockName} ${startTime.format(
-								this.startDateFormat
+								settings.startDateFormat
 							)}`;
 						}
 
@@ -145,26 +149,37 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 					} else if (i === 0 && textBlock === this.startBlockName) {
 						// Determine start time if not initialized from creating a [start] block
 						if (textAfterColon) {
-							startTime = moment(
+							startTime = getStartDateFromUserString(
 								textAfterColon,
-								this.startDateFormat
+								settings
 							);
 						}
 						continue;
 					}
 
 					// Replace all [time] blocks or empty lines with the correct time
-					if (!textBlock || textBlock !== this.endBlockName) {
+					const isEarlyFinishBlock = textBlock === this.endBlockName && i < 2;
+					if (isEarlyFinishBlock) {
+						textAfterColon = "";
+					}
+					if (
+						!textBlock ||
+						isEarlyFinishBlock || 
+						textBlock !== this.endBlockName
+					) {
 						// If empty line and we have appendEmptyTimeBlock enabled, delete the empty line
 						if (
 							!textBlock &&
-							this.shouldAppendEmptyTimeBlock &&
+							settings.shouldAppendEmptyTimeBlock &&
 							i < splitLines.length - 1
 						) {
-							const nextLineMatches = [
-								...splitLines[i + 1].matchAll(matchBlockRegex),
-							]?.[0];
-							if (nextLineMatches?.[2].trim() === "") {
+							const [, nextLineAfterCodeBlockContents] =
+								[
+									...splitLines[i + 1].matchAll(
+										matchBlockRegex
+									),
+								]?.[0] || [];
+							if (nextLineAfterCodeBlockContents?.trim() === "") {
 								// Update line
 								hasChanges = true;
 								splitLines.splice(i, 1);
@@ -178,10 +193,19 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 							nextDate = nextDate.add(elapsedMs, "millisecond");
 						}
 						const timeBlockString = `[${nextDate.format(
-							this.eventDateFormat
+							settings.eventDateFormat
 						)}]:`;
 						if (textBlock !== timeBlockString) {
-							line = `${timeBlockString} ${textAfterColon}`;
+							if (textBlock) {
+								line = `${timeBlockString} ${textAfterColon}`;
+							} else {
+								if (timeBlockString.startsWith(line)) {
+									line = `${timeBlockString} `;
+								} else {
+									line = `${timeBlockString} ${line}`;
+								}
+							}
+
 							// Update line
 							hasChanges = true;
 							splitLines[i] = line;
@@ -216,7 +240,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 						}
 						const endBlockString = `${
 							this.endBlockName
-						} ${endDate.format(this.endDateFormat)}`;
+						} ${endDate.format(settings.endDateFormat)}`;
 						if (line.trim() !== endBlockString) {
 							// Update line
 							hasChanges = true;
@@ -226,7 +250,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 				}
 
 				// Option to always append an empty time block
-				if (this.shouldAppendEmptyTimeBlock) {
+				if (settings.shouldAppendEmptyTimeBlock) {
 					const beforeLastLineMatch = [
 						...splitLines[splitLines.length - 2].matchAll(
 							matchBlockRegex
@@ -243,7 +267,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 						// Update line
 						hasChanges = true;
 						const line = `[${nextDate.format(
-							this.eventDateFormat
+							settings.eventDateFormat
 						)}]: `;
 						splitLines.splice(splitLines.length - 1, 0, line);
 					}
