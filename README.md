@@ -4,25 +4,25 @@ Inline timelines generated from human-readable time strings, e.g. 'Walk dog (30m
 
 You can set if you want to enable pretty preview and/or autofill from the plugin's settings.
 
-## Only pretty preview, no autofill
-
-![Only pretty preview, no autofill demo gif](./docs/v1-with-preview-no-autofill.gif)
-
-Each human-readable time string you add to the end of a line will be added to the total time and displayed before the next event.
-
-For instance, `Grind beans (3m)` sets the time from `7:05` to `7:08`.
-
-In this mode, you don't need date blocks, e.g. (`[Start]`, `[Finish]`), the `start` date is set from whatever you put at the beginning e.g. "Start: 08/10/2023 08:00 AM"
-
-If you omit a start line, the current date & time will be used.
-
 ## Only autofill, no pretty preview
 
 ![Only autofill, no pretty preview demo gif](./docs/v1-with-autofill-no-preview.gif)
 
 A `[Start]` and `[Finish]` block will always be present during autofill, and each line between them will be prepended with a time block e.g. `[9:30 AM]:`.
 
+Each human-readable time string you add to the end of a line will be added to the next time block.
+
+For instance, `Grind beans (3m)` sets the time from `[7:05]` to `[7:08]` in the next line.
+
 In this mode, when your cursor exits the codeblock it will preview as a standard Obsidian code block.
+
+## Only pretty preview, no autofill
+
+![Only pretty preview, no autofill demo gif](./docs/v1-with-preview-no-autofill.gif)
+
+In this mode, you don't need date blocks, e.g. (`[Start]`, `[Finish]`), the `start` date is set from whatever you put at the beginning e.g. "Start: 08/10/2023 08:00 AM"
+
+If you omit a start line, the current date & time will be used.
 
 # Both autofill and pretty preview (default)
 
