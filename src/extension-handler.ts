@@ -3,7 +3,6 @@ import type { PluginValue, EditorView } from "@codemirror/view";
 import { moment, type App, type EditorPosition, MarkdownView } from "obsidian";
 import timestring from "timestring";
 import {
-	DEFAULT_SETTINGS,
 	TimelineScheduleSettings,
 } from "src/settings/settings";
 import { matchBlockRegex, matchHumanTimeRegex } from "./constants";
@@ -32,9 +31,7 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 			}
 
 			initInstanceVars(): void {
-				this.blockVariableName =
-					settings.blockVariableName ||
-					DEFAULT_SETTINGS.blockVariableName;
+				this.blockVariableName = settings.blockVariableName;
 				this.codeBlockRegex = new RegExp(
 					"(.*)?`{3}(" +
 						this.blockVariableName +
@@ -42,23 +39,13 @@ export function inlinePlugin(app: App, settings: TimelineScheduleSettings) {
 					"gim"
 				);
 
-				this.startBlockName = `[${
-					settings.startBlockName || DEFAULT_SETTINGS.startBlockName
-				}]:`;
-				this.endBlockName = `[${
-					settings.endBlockName || DEFAULT_SETTINGS.endBlockName
-				}]:`;
+				this.startBlockName = `[${settings.startBlockName}]:`;
+				this.endBlockName = `[${settings.endBlockName}]:`;
 				this.shouldAppendEmptyTimeBlock =
-					settings.shouldAppendEmptyTimeBlock ||
-					DEFAULT_SETTINGS.shouldAppendEmptyTimeBlock;
-				this.startDateFormat =
-					settings.startDateFormat ||
-					DEFAULT_SETTINGS.startDateFormat;
-				this.endDateFormat =
-					settings.endDateFormat || DEFAULT_SETTINGS.endDateFormat;
-				this.eventDateFormat =
-					settings.eventDateFormat ||
-					DEFAULT_SETTINGS.eventDateFormat;
+					settings.shouldAppendEmptyTimeBlock;
+				this.startDateFormat = settings.startDateFormat;
+				this.endDateFormat = settings.endDateFormat;
+				this.eventDateFormat = settings.eventDateFormat;
 			}
 
 			public destroy(): void {

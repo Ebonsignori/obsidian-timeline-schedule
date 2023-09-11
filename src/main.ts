@@ -20,11 +20,12 @@ export default class TimelineSchedule extends Plugin {
 		if (this.settings.renderInPreviewMode) {
 			try {
 				this.registerMarkdownCodeBlockProcessor(
-					this.settings.blockVariableName ||
-						DEFAULT_SETTINGS.blockVariableName,
+					this.settings.blockVariableName,
 					(source, el, ctx) => {
 						if (source.trim()) {
-							ctx.addChild(new PrettyRender(el, source));
+							ctx.addChild(
+								new PrettyRender(el, source, this.settings)
+							);
 						}
 					}
 				);
@@ -65,13 +66,15 @@ export default class TimelineSchedule extends Plugin {
 		// Update the active extension
 		// Empty the array while keeping the same reference
 		// (Don't create a new array here)
-		this.activeExtension.length = 0;
+		if (this.activeExtension?.length) {
+			this.activeExtension.length = 0;
 
-		// Add new extension to the array
-		this.activeExtension.push(inlinePlugin(this.app, this.settings));
+			// Add new extension to the array
+			this.activeExtension.push(inlinePlugin(this.app, this.settings));
 
-		// Flush the changes to all editors
-		this.app.workspace.updateOptions();
+			// Flush the changes to all editors
+			this.app.workspace.updateOptions();
+		}
 	}
 
 	async loadSettings() {
@@ -80,6 +83,18 @@ export default class TimelineSchedule extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
+
+		// Override any settings that are undefined, null, or empty string with defaults
+		const settings = <any>this.settings;
+		for (const key in this.settings) {
+			if (
+				settings[key] === undefined ||
+				settings[key] === null ||
+				settings[key] === ""
+			) {
+				(<any>this.settings)[key] = (<any>DEFAULT_SETTINGS)[key];
+			}
+		}
 	}
 
 	async saveSettings() {

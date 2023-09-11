@@ -7,7 +7,6 @@ export interface TimelineScheduleSettings {
 	endBlockName: string;
 
 	renderInPreviewMode: boolean;
-	renderInReadMode: boolean;
 
 	enableCodeblockTextCompletion: boolean;
 	shouldAppendEmptyTimeBlock: boolean;
@@ -23,7 +22,6 @@ export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
 	endBlockName: "Finish",
 
 	renderInPreviewMode: true,
-	renderInReadMode: true,
 
 	enableCodeblockTextCompletion: true,
 	shouldAppendEmptyTimeBlock: true,
