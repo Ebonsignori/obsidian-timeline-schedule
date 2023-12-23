@@ -11,7 +11,10 @@ import {
 } from "./utils";
 
 // Editor extension responsible for autofilling dates in a codeblock
-export function codeblockAutofillPlugin(app: App, settings: TimelineScheduleSettings) {
+export function codeblockAutofillPlugin(
+	app: App,
+	settings: TimelineScheduleSettings
+) {
 	return ViewPlugin.fromClass(
 		class TimelineScheduleExtension implements PluginValue {
 			private readonly view: EditorView;
@@ -68,9 +71,11 @@ export function codeblockAutofillPlugin(app: App, settings: TimelineScheduleSett
 					if (blockName?.trim() !== settings.blockVariableName) {
 						continue;
 					}
-					// We don't want to autofill if there is content before the codeblock
-					// e.g. "> ```schedule" the "> " is a callout and should not trigger autofill
-					if (beforeCodeBlock?.length) {
+					// We only autofill if whitespace or callout ">" is before the codeblock
+					if (
+						beforeCodeBlock?.length &&
+						!beforeCodeBlock.match(/^(\s|>)*$/gi)
+					) {
 						continue;
 					}
 
@@ -81,8 +86,9 @@ export function codeblockAutofillPlugin(app: App, settings: TimelineScheduleSett
 			}
 
 			private processMatchingCodeBlock(match: RegExpMatchArray): void {
+				const beforeCodeBlockContents = match?.[1] || "";
 				const innerIndex =
-					<number>match.index + 4 + settings.blockVariableName.length;
+					<number>match.index + 4 + settings.blockVariableName.length + beforeCodeBlockContents.length;
 				let hasChanges = false;
 
 				const innerContents = match?.[3];
@@ -104,6 +110,9 @@ export function codeblockAutofillPlugin(app: App, settings: TimelineScheduleSett
 
 				for (let i = 0; i < splitLines.length; i++) {
 					let line = splitLines[i].trim();
+					if (line.startsWith(beforeCodeBlockContents)) {
+						line = line.substring(beforeCodeBlockContents.length);
+					}
 
 					// 0: full string
 					// 1: bracket colon part: [start]:, [end]:, [XX:YY]:
