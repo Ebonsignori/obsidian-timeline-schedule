@@ -16,6 +16,8 @@ For instance, `Grind beans (3m)` sets the time from `[7:05]` to `[7:08]` in the 
 
 In this mode, when your cursor exits the codeblock it will preview as a standard Obsidian code block.
 
+While possible, autofill is **not recommended** within [callouts](https://help.obsidian.md/Editing+and+formatting/Callouts). I recommend writing your schedule outside of a callout, then pasting the codeblock in a callout to be rendered in pretty preview. 
+
 ## Only pretty preview, no autofill
 
 ![Only pretty preview, no autofill demo gif](./docs/v1-with-preview-no-autofill.gif)
