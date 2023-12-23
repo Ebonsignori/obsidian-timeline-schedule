@@ -5,11 +5,14 @@ export function getStartDateFromUserString(
 	dateString: string,
 	settings: { startDateFormat: string; parseStartDateFormat: string }
 ) {
-	let startDate = moment(dateString);
-	if (settings.parseStartDateFormat && !startDate.isValid()) {
+	let startDate = moment();
+	if (dateString) {
+		startDate = moment(dateString);
+	}
+	if (settings.parseStartDateFormat && !startDate?.isValid()) {
 		startDate = moment(dateString, settings.parseStartDateFormat);
 	}
-	if (!startDate.isValid()) {
+	if (!startDate?.isValid()) {
 		startDate = moment(dateString, settings.startDateFormat);
 	}
 	return startDate;
