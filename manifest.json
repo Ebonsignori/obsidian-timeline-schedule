@@ -1,7 +1,7 @@
 {
   "id": "timeline-schedule",
   "name": "Timeline Schedule",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "minAppVersion": "0.15.0",
   "description": "Inline timelines generated from human-readable time strings, e.g. 'Walk dog (30min)' in a ```schedule codeblock.",
   "author": "Evan Bonsignori",
