@@ -88,7 +88,10 @@ export function codeblockAutofillPlugin(
 			private processMatchingCodeBlock(match: RegExpMatchArray): void {
 				const beforeCodeBlockContents = match?.[1] || "";
 				const innerIndex =
-					<number>match.index + 4 + settings.blockVariableName.length + beforeCodeBlockContents.length;
+					<number>match.index +
+					4 +
+					settings.blockVariableName.length +
+					beforeCodeBlockContents.length;
 				let hasChanges = false;
 
 				const innerContents = match?.[3];
@@ -167,36 +170,16 @@ export function codeblockAutofillPlugin(
 					}
 
 					// Replace all [time] blocks or empty lines with the correct time
-					const isEarlyFinishBlock = textBlock === this.endBlockName && i < 2;
+					const isEarlyFinishBlock =
+						textBlock === this.endBlockName && i < 2;
 					if (isEarlyFinishBlock) {
 						textAfterColon = "";
 					}
 					if (
 						!textBlock ||
-						isEarlyFinishBlock || 
+						isEarlyFinishBlock ||
 						textBlock !== this.endBlockName
 					) {
-						// If empty line and we have appendEmptyTimeBlock enabled, delete the empty line
-						if (
-							!textBlock &&
-							settings.shouldAppendEmptyTimeBlock &&
-							i < splitLines.length - 1
-						) {
-							const [, nextLineAfterCodeBlockContents] =
-								[
-									...splitLines[i + 1].matchAll(
-										matchBlockRegex
-									),
-								]?.[0] || [];
-							if (nextLineAfterCodeBlockContents?.trim() === "") {
-								// Update line
-								hasChanges = true;
-								splitLines.splice(i, 1);
-								i--;
-								continue;
-							}
-						}
-
 						let nextDate = moment(startTime);
 						if (elapsedMs) {
 							nextDate = nextDate.add(elapsedMs, "millisecond");
@@ -255,30 +238,6 @@ export function codeblockAutofillPlugin(
 							hasChanges = true;
 							splitLines[i] = endBlockString;
 						}
-					}
-				}
-
-				// Option to always append an empty time block
-				if (settings.shouldAppendEmptyTimeBlock) {
-					const beforeLastLineMatch = [
-						...splitLines[splitLines.length - 2].matchAll(
-							matchBlockRegex
-						),
-					]?.[0];
-					if (
-						!beforeLastLineMatch ||
-						beforeLastLineMatch?.[2].trim()
-					) {
-						let nextDate = moment(startTime);
-						if (elapsedMs) {
-							nextDate = nextDate.add(elapsedMs, "millisecond");
-						}
-						// Update line
-						hasChanges = true;
-						const line = `[${nextDate.format(
-							settings.eventDateFormat
-						)}]: `;
-						splitLines.splice(splitLines.length - 1, 0, line);
 					}
 				}
 

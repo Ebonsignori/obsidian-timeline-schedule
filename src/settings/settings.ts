@@ -9,7 +9,6 @@ export interface TimelineScheduleSettings {
 	enablePrettyPreview: boolean;
 
 	enableCodeblockTextAutofill: boolean;
-	shouldAppendEmptyTimeBlock: boolean;
 
 	startDateFormat: string;
 	endDateFormat: string;
@@ -25,10 +24,9 @@ export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
 	enablePrettyPreview: true,
 
 	enableCodeblockTextAutofill: true,
-	shouldAppendEmptyTimeBlock: false,
 
-	startDateFormat: "hh:mm A",
-	endDateFormat: "hh:mm A",
+	startDateFormat: "MM/DD/YY - hh:mm A",
+	endDateFormat: "MM/DD/YY - hh:mm A",
 	eventDateFormat: "h:mm A",
 	parseStartDateFormat: "hh:mm A",
 };
@@ -50,11 +48,7 @@ export class SettingsTab extends PluginSettingTab {
 	display(): void {
 		this.containerEl.empty();
 
-		this.containerEl.appendChild(
-			createHeading(this.containerEl, "Timeline Schedule settings")
-		);
-
-		new Setting(this.containerEl)
+		const codeBlockVariableName = new Setting(this.containerEl)
 			.setName("Code block variable")
 			.setDesc(
 				"The name of the code block variable to use for the plugin."
@@ -70,8 +64,19 @@ export class SettingsTab extends PluginSettingTab {
 					this.display();
 				};
 			});
+		codeBlockVariableName.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.blockVariableName =
+						DEFAULT_SETTINGS.blockVariableName;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
-		new Setting(this.containerEl)
+		const startBlockName = new Setting(this.containerEl)
 			.setName("Start block name")
 			.setDesc("The name of the start block.")
 			.addText((text) => {
@@ -82,8 +87,19 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+		startBlockName.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.startBlockName =
+						DEFAULT_SETTINGS.startBlockName;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
-		new Setting(this.containerEl)
+		const endBlockName = new Setting(this.containerEl)
 			.setName("End block name")
 			.setDesc("The name of the end block.")
 			.addText((text) => {
@@ -94,6 +110,17 @@ export class SettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+		endBlockName.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.endBlockName =
+						DEFAULT_SETTINGS.endBlockName;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
 		new Setting(this.containerEl)
 			.setName("Pretty preview when cursor leaves")
@@ -132,77 +159,68 @@ export class SettingsTab extends PluginSettingTab {
 					})
 			);
 
-		if (this.plugin.settings.enableCodeblockTextAutofill) {
-			new Setting(this.containerEl)
-				.setName("Append empty time block")
-				.setDesc(
-					`Will append an empty event time block before the [end] time block in a ${
-						this.plugin.settings.blockVariableName ||
-						DEFAULT_SETTINGS.blockVariableName
-					} code block when autofill is enabled.`
-				)
-				.addToggle((toggle) =>
-					toggle
-						.setValue(
-							this.plugin.settings.shouldAppendEmptyTimeBlock
-						)
-						.onChange(async (value: boolean) => {
-							this.plugin.settings.shouldAppendEmptyTimeBlock =
-								value;
-							await this.plugin.saveSettings();
-							this.display();
-						})
-				);
-		}
-
 		new Setting(this.containerEl).setName("Date formats");
 
 		const startDateFormatDesc = document.createDocumentFragment();
 		startDateFormatDesc.append(
-			`Date format of the [start] date block `,
 			createLink(
 				startDateFormatDesc,
-				"moment.js date format",
+				"Syntax Reference",
 				"https://momentjscom.readthedocs.io/en/latest/moment/04-displaying/01-format/"
 			),
-			`. (example: ${moment().format(
+			startDateFormatDesc.createEl("br"),
+			`Current syntax looks like this: ${moment().format(
 				this.plugin.settings.startDateFormat ||
 					DEFAULT_SETTINGS.startDateFormat
-			)})`
+			)}`
 		);
-		new Setting(this.containerEl)
+		const startDateFormat = new Setting(this.containerEl)
 			.setName("Start date format")
 			.setDesc(startDateFormatDesc)
-			.addText((text) => {
-				text.setPlaceholder(DEFAULT_SETTINGS.startDateFormat)
+			.addMomentFormat((format) => {
+				format
+					.setDefaultFormat(DEFAULT_SETTINGS.startDateFormat)
+					.setPlaceholder(DEFAULT_SETTINGS.startDateFormat)
 					.setValue(this.plugin.settings.startDateFormat)
 					.onChange(async (value: string) => {
 						this.plugin.settings.startDateFormat = value;
 						await this.plugin.saveSettings();
 					});
-				text.inputEl.onblur = () => {
+				format.inputEl.onblur = () => {
 					this.display();
 				};
 			});
+		startDateFormat.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.startDateFormat =
+						DEFAULT_SETTINGS.startDateFormat;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
 		const endDateFormatDesc = document.createDocumentFragment();
 		endDateFormatDesc.append(
-			`Date format of the [end] date block `,
 			createLink(
 				endDateFormatDesc,
-				"moment.js date format",
+				"Syntax Reference",
 				"https://momentjscom.readthedocs.io/en/latest/moment/04-displaying/01-format/"
 			),
-			`. (example: ${moment().format(
+			startDateFormatDesc.createEl("br"),
+			`Current syntax looks like this: ${moment().format(
 				this.plugin.settings.endDateFormat ||
 					DEFAULT_SETTINGS.endDateFormat
-			)})`
+			)}`
 		);
-		new Setting(this.containerEl)
+		const endDateFormat = new Setting(this.containerEl)
 			.setName("End date format")
 			.setDesc(endDateFormatDesc)
-			.addText((text) => {
-				text.setPlaceholder(DEFAULT_SETTINGS.endDateFormat)
+			.addMomentFormat((text) => {
+				text.setDefaultFormat(DEFAULT_SETTINGS.endDateFormat)
+					.setPlaceholder(DEFAULT_SETTINGS.endDateFormat)
 					.setValue(this.plugin.settings.endDateFormat)
 					.onChange(async (value: string) => {
 						this.plugin.settings.endDateFormat = value;
@@ -212,25 +230,37 @@ export class SettingsTab extends PluginSettingTab {
 					this.display();
 				};
 			});
+		endDateFormat.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.endDateFormat =
+						DEFAULT_SETTINGS.endDateFormat;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
 		const eventDateFormatDesc = document.createDocumentFragment();
 		eventDateFormatDesc.append(
-			`Date format of the [event] date block `,
 			createLink(
 				eventDateFormatDesc,
-				"moment.js date format",
+				"Syntax Reference",
 				"https://momentjscom.readthedocs.io/en/latest/moment/04-displaying/01-format/"
 			),
-			`. (example: ${moment().format(
+			startDateFormatDesc.createEl("br"),
+			`Current syntax looks like this: ${moment().format(
 				this.plugin.settings.eventDateFormat ||
 					DEFAULT_SETTINGS.eventDateFormat
-			)})`
+			)}`
 		);
-		new Setting(this.containerEl)
+		const eventDateFormat = new Setting(this.containerEl)
 			.setName("Event date format")
 			.setDesc(eventDateFormatDesc)
-			.addText((text) => {
-				text.setPlaceholder(DEFAULT_SETTINGS.eventDateFormat)
+			.addMomentFormat((text) => {
+				text.setDefaultFormat(DEFAULT_SETTINGS.eventDateFormat)
+					.setPlaceholder(DEFAULT_SETTINGS.eventDateFormat)
 					.setValue(this.plugin.settings.eventDateFormat)
 					.onChange(async (value: string) => {
 						this.plugin.settings.eventDateFormat = value;
@@ -240,6 +270,17 @@ export class SettingsTab extends PluginSettingTab {
 					this.display();
 				};
 			});
+		eventDateFormat.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.eventDateFormat =
+						DEFAULT_SETTINGS.eventDateFormat;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 
 		const parseStartDateFormatDesc = document.createDocumentFragment();
 		parseStartDateFormatDesc.append(
@@ -250,32 +291,38 @@ export class SettingsTab extends PluginSettingTab {
 					DEFAULT_SETTINGS.parseStartDateFormat
 			)}`
 		);
-		new Setting(this.containerEl)
+		const parseStartDateFormat = new Setting(this.containerEl)
 			.setName("Start date format for parsing")
 			.setDesc(parseStartDateFormatDesc)
-			.addText((text) => {
-				text.setPlaceholder(this.plugin.settings.startDateFormat)
+			.addMomentFormat((format) => {
+				format
+					.setDefaultFormat(DEFAULT_SETTINGS.parseStartDateFormat)
+					.setPlaceholder(DEFAULT_SETTINGS.parseStartDateFormat)
 					.setValue(this.plugin.settings.parseStartDateFormat)
 					.onChange(async (value: string) => {
 						this.plugin.settings.parseStartDateFormat = value;
 						await this.plugin.saveSettings();
 					});
-				text.inputEl.onblur = () => {
+				format.inputEl.onblur = () => {
 					this.display();
 				};
 			});
+		parseStartDateFormat.addExtraButton((button) => {
+			button
+				.setIcon("reset")
+				.setTooltip("Reset to default")
+				.onClick(async () => {
+					this.plugin.settings.parseStartDateFormat =
+						DEFAULT_SETTINGS.parseStartDateFormat;
+					await this.plugin.saveSettings();
+					this.display();
+				});
+		});
 	}
 
 	async validate() {
 		return true;
 	}
-}
-
-function createHeading(el: HTMLElement, text: string, level = 2) {
-	const heading = el.createEl(`h${level}` as keyof HTMLElementTagNameMap, {
-		text,
-	});
-	return heading;
 }
 
 function createLink(

@@ -1,4 +1,4 @@
-import moment from "moment";
+import { moment } from "obsidian";
 
 // Parse user date string for start date
 export function getStartDateFromUserString(
