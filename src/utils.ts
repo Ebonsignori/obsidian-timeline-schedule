@@ -3,15 +3,9 @@ import { moment } from "obsidian";
 // Parse user date string for start date
 export function getStartDateFromUserString(
 	dateString: string,
-	settings: { startDateFormat: string; parseStartDateFormat: string }
+	settings: { startDateFormat: string; }
 ) {
-	let startDate = moment();
-	if (dateString) {
-		startDate = moment(dateString);
-	}
-	if (settings.parseStartDateFormat && !startDate?.isValid()) {
-		startDate = moment(dateString, settings.parseStartDateFormat);
-	}
+	let startDate = moment(dateString);
 	if (!startDate?.isValid()) {
 		startDate = moment(dateString, settings.startDateFormat);
 	}

@@ -35,7 +35,9 @@ export default class TimelineSchedule extends Plugin {
 		}
 
 		if (this.settings.enableCodeblockTextAutofill) {
-			this.activeExtension = [codeblockAutofillPlugin(this.app, this.settings)];
+			this.activeExtension = [
+				codeblockAutofillPlugin(this.app, this.settings),
+			];
 			this.registerEditorExtension(this.activeExtension);
 			this.registerEvent(
 				this.app.workspace.on(
@@ -69,7 +71,9 @@ export default class TimelineSchedule extends Plugin {
 	updateEditorProcessors() {
 		if (this.activeExtension?.length) {
 			this.activeExtension.length = 0;
-			this.activeExtension.push(codeblockAutofillPlugin(this.app, this.settings));
+			this.activeExtension.push(
+				codeblockAutofillPlugin(this.app, this.settings)
+			);
 			this.app.workspace.updateOptions();
 		}
 	}
@@ -89,12 +93,7 @@ export default class TimelineSchedule extends Plugin {
 				settings[key] === null ||
 				settings[key] === ""
 			) {
-				// Special case, we fallback to startDateFormat if parseStartDateFormat is empty
-				if (key == "parseStartDateFormat" && !settings[key]) {
-					(<any>this.settings)[key] = this.settings.startDateFormat;
-				} else {
-					(<any>this.settings)[key] = (<any>DEFAULT_SETTINGS)[key];
-				}
+				(<any>this.settings)[key] = (<any>DEFAULT_SETTINGS)[key];
 			}
 		}
 	}

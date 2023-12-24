@@ -88,10 +88,7 @@ export function codeblockAutofillPlugin(
 			private processMatchingCodeBlock(match: RegExpMatchArray): void {
 				const beforeCodeBlockContents = match?.[1] || "";
 				const innerIndex =
-					<number>match.index +
-					4 +
-					settings.blockVariableName.length +
-					beforeCodeBlockContents.length;
+					<number>match.index + 4 + settings.blockVariableName.length + beforeCodeBlockContents.length;
 				let hasChanges = false;
 
 				const innerContents = match?.[3];
@@ -170,20 +167,20 @@ export function codeblockAutofillPlugin(
 					}
 
 					// Replace all [time] blocks or empty lines with the correct time
-					const isEarlyFinishBlock =
-						textBlock === this.endBlockName && i < 2;
+					const isEarlyFinishBlock = textBlock === this.endBlockName && i < 2;
 					if (isEarlyFinishBlock) {
 						textAfterColon = "";
 					}
 					if (
 						!textBlock ||
-						isEarlyFinishBlock ||
+						isEarlyFinishBlock || 
 						textBlock !== this.endBlockName
 					) {
 						let nextDate = moment(startTime);
 						if (elapsedMs) {
 							nextDate = nextDate.add(elapsedMs, "millisecond");
 						}
+						console.log(nextDate.format(settings.eventDateFormat))
 						const timeBlockString = `[${nextDate.format(
 							settings.eventDateFormat
 						)}]:`;

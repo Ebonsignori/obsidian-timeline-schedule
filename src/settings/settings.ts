@@ -13,7 +13,6 @@ export interface TimelineScheduleSettings {
 	startDateFormat: string;
 	endDateFormat: string;
 	eventDateFormat: string;
-	parseStartDateFormat: string;
 }
 
 export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
@@ -28,7 +27,6 @@ export const DEFAULT_SETTINGS: TimelineScheduleSettings = {
 	startDateFormat: "MM/DD/YY - hh:mm A",
 	endDateFormat: "MM/DD/YY - hh:mm A",
 	eventDateFormat: "h:mm A",
-	parseStartDateFormat: "hh:mm A",
 };
 
 export class SettingsTab extends PluginSettingTab {
@@ -277,43 +275,6 @@ export class SettingsTab extends PluginSettingTab {
 				.onClick(async () => {
 					this.plugin.settings.eventDateFormat =
 						DEFAULT_SETTINGS.eventDateFormat;
-					await this.plugin.saveSettings();
-					this.display();
-				});
-		});
-
-		const parseStartDateFormatDesc = document.createDocumentFragment();
-		parseStartDateFormatDesc.append(
-			"If you write your start dates in a different format from the display format, you can specify the format here.",
-			parseStartDateFormatDesc.createEl("br"),
-			`For instance, Start: ${moment().format(
-				this.plugin.settings.parseStartDateFormat ||
-					DEFAULT_SETTINGS.parseStartDateFormat
-			)}`
-		);
-		const parseStartDateFormat = new Setting(this.containerEl)
-			.setName("Start date format for parsing")
-			.setDesc(parseStartDateFormatDesc)
-			.addMomentFormat((format) => {
-				format
-					.setDefaultFormat(DEFAULT_SETTINGS.parseStartDateFormat)
-					.setPlaceholder(DEFAULT_SETTINGS.parseStartDateFormat)
-					.setValue(this.plugin.settings.parseStartDateFormat)
-					.onChange(async (value: string) => {
-						this.plugin.settings.parseStartDateFormat = value;
-						await this.plugin.saveSettings();
-					});
-				format.inputEl.onblur = () => {
-					this.display();
-				};
-			});
-		parseStartDateFormat.addExtraButton((button) => {
-			button
-				.setIcon("reset")
-				.setTooltip("Reset to default")
-				.onClick(async () => {
-					this.plugin.settings.parseStartDateFormat =
-						DEFAULT_SETTINGS.parseStartDateFormat;
 					await this.plugin.saveSettings();
 					this.display();
 				});
